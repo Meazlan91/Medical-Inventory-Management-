@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediStock - Medical Shop Inventory</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">💊</div>
+                <div>
+                    <h1>MediStock</h1>
+                    <p>Inventory Manager</p>
+                </div>
+            </div>
+            <nav>
+                <button class="nav-btn active" data-view="dashboard"><span>📊</span> Dashboard</button>
+                <button class="nav-btn" data-view="quicksale"><span>⚡</span> Quick Sale</button>
+                <button class="nav-btn" data-view="sales"><span>🧾</span> Sales / Billing</button>
+                <button class="nav-btn" data-view="inventory"><span>📦</span> Inventory</button>
+                <button class="nav-btn" data-view="purchase"><span>🛒</span> Purchase</button>
+                <button class="nav-btn" data-view="returns"><span>↩️</span> Returns</button>
+                <button class="nav-btn" data-view="history"><span>📋</span> Sales History</button>
+                <button class="nav-btn" data-view="reports"><span>📈</span> Reports</button>
+                <button class="nav-btn" data-view="expiry"><span>⚠️</span> Near Expiry</button>
+                <button class="nav-btn" data-view="customers"><span>👥</span> Customers</button>
+                <button class="nav-btn" data-view="expenses"><span>💸</span> Expenses</button>
+                <button class="nav-btn" data-view="add"><span>➕</span> Add Medicine</button>
+                <button class="nav-btn" data-view="settings"><span>⚙️</span> Settings</button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">{{ user_name[0] | upper }}</div>
+                    <div class="user-text">
+                        <p>{{ user_name }}</p>
+                        <small>{{ user_role }}</small>
+                    </div>
+                </div>
+                <a href="/logout" class="logout-btn" id="sidebar-logout">⏻ Logout</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <header class="header">
+                <div>
+                    <h2 id="page-title">Dashboard</h2>
+                    <p id="page-subtitle">Overview of your medicine stock</p>
+                </div>
+                <div class="header-actions">
+                    <div class="search-box" style="position:relative">
+                        <input type="text" id="global-search" placeholder="Ctrl+K Global search..." style="width:200px">
+                        <div id="global-search-results" class="search-results"></div>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="search-input" placeholder="Filter list...">
+                    </div>
+                    <div class="header-admin-btns">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleDarkMode()" id="theme-toggle-header" title="Dark Mode">🌙</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleCounterMode()" title="Counter UI">🖥️</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showShortcuts()" title="Shortcuts">⌨️</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="switchView('settings')" title="Admin Settings">⚙️ Settings</button>
+                        <a href="/logout" class="btn btn-danger btn-sm" style="text-decoration:none" title="Logout">Logout</a>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ===== DASHBOARD ===== -->
+            <section id="dashboard-view" class="view active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">📦</div>
+                        <div>
+                            <h3 id="stat-total">0</h3>
+                            <p>Total Medicines</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">🔢</div>
+                        <div>
+                            <h3 id="stat-qty">0</h3>
+                            <p>Total Quantity</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">💰</div>
+                        <div>
+                            <h3 id="stat-value">₹0</h3>
+                            <p>Stock Value (Rate)</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon teal">🧾</div>
+                        <div>
+                            <h3 id="stat-today-sales">₹0</h3>
+                            <p>Today's Sales</p>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon orange">⚠️</div>
+                        <div>
+                            <h3 id="stat-expiring">0</h3>
+                            <p>Expiring in 30 Days</p>
+                        </div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-icon red">❌</div>
+                        <div>
+                            <h3 id="stat-expired">0</h3>
+                            <p>Expired Medicines</p>
+                        </div>
+                    </div>
+                    <div class="stat-card low-stock-card">
+                        <div class="stat-icon yellow">📉</div>
+                        <div>
+                            <h3 id="stat-low-stock">0</h3>
+                            <p>Low Stock (≤10)</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon gray">🚫</div>
+                        <div>
+                            <h3 id="stat-out-stock">0</h3>
+                            <p>Out of Stock</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-row" id="dashboard-charts" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px">
+                    <div class="card">
+                        <div class="card-header"><h3>Sales (Last 7 Days)</h3></div>
+                        <div style="padding:16px;height:200px" id="chart-daily"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>Payments (30 Days)</h3></div>
+                        <div style="padding:16px;height:200px" id="chart-payments"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Recent Medicines</h3>
+                        <button class="btn btn-primary btn-sm" onclick="switchView('inventory')">View All</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Batch</th>
+                                    <th>Company</th>
+                                    <th>Qty</th>
+                                    <th>Expiry</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-table-body">
+                                <tr><td colspan="7" class="empty">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== INVENTORY ===== -->
+            <section id="inventory-view" class="view">
+                <div class="filters">
+                    <select id="filter-type">
+                        <option value="">All Types</option>
+                        <option value="Tablet">Tablet</option>
+                        <option value="Capsule">Capsule</option>
+                        <option value="Syrup">Syrup</option>
+                        <option value="Drops">Drops</option>
+                        <option value="Ointment">Ointment</option>
+                    </select>
+                    <select id="filter-expiry">
+                        <option value="">All Status</option>
+                        <option value="valid">Valid</option>
+                        <option value="expiring_soon">Expiring Soon (≤30 days)</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                    <select id="filter-stock">
+                        <option value="">All Stock</option>
+                        <option value="low">Low Stock (≤10)</option>
+                        <option value="out">Out of Stock</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadMedicines()">Apply</button>
+                    <button class="btn btn-primary" onclick="switchView('add')">+ Add New</button>
+                </div>
+
+                <div class="card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Batch No</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Company</th>
+                                    <th>MFG Date</th>
+                                    <th>Expiry</th>
+                                    <th>Rate (₹)</th>
+                                    <th>MRP (₹)</th>
+                                    <th>Qty</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body">
+                                <tr><td colspan="11" class="empty">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SALES / BILLING ===== -->
+            <section id="sales-view" class="view">
+                <div class="sales-layout">
+                    <div class="card sales-cart">
+                        <div class="card-header">
+                            <h3>New Bill</h3>
+                        </div>
+                        <div class="sales-form">
+                            <div class="form-group">
+                                <label>Customer Name</label>
+                                <input type="text" id="customer-name" placeholder="Walk-in Customer">
+                            </div>
+                            <div class="form-group">
+                                <label>Doctor Name (optional)</label>
+                                <input type="text" id="doctor-name" placeholder="Dr. Name">
+                            </div>
+                            <div class="form-row" style="display:flex;gap:12px;">
+                                <div class="form-group" style="flex:1">
+                                    <label>Payment Mode</label>
+                                    <select id="payment-mode">
+                                        <option value="Cash">Cash</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="Card">Card</option>
+                                        <option value="Credit">Credit</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="flex:1">
+                                    <label>Discount (₹)</label>
+                                    <input type="number" id="bill-discount" min="0" step="0.01" value="0" placeholder="0">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Search / Scan Barcode</label>
+                                <input type="text" id="sale-search" placeholder="Type name or scan barcode..." autofocus>
+                                <div id="sale-search-results" class="search-results"></div>
+                            </div>
+                        </div>
+                        <div class="cart-items" id="cart-items">
+                            <p class="empty-cart">No items added yet. Search and add medicines above.</p>
+                        </div>
+                        <div class="cart-footer">
+                            <div class="cart-total">
+                                <span>Total Amount</span>
+                                <strong id="cart-total">₹0.00</strong>
+                            </div>
+                            <button class="btn btn-primary btn-lg" id="complete-sale-btn" onclick="completeSale()" disabled>
+                                Complete Sale
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Available Stock (for billing)</h3>
+                        </div>
+                        <div class="table-wrapper" style="max-height: 480px; overflow-y: auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Batch</th>
+                                        <th>MRP</th>
+                                        <th>Qty</th>
+                                        <th>Add</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sale-stock-body">
+                                    <tr><td colspan="6" class="empty">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SALES HISTORY ===== -->
+            <section id="history-view" class="view">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Sales History</h3>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bill No</th>
+                                    <th>Customer</th>
+                                    <th>Items</th>
+                                    <th>Amount (₹)</th>
+                                    <th>Sold By</th>
+                                    <th>Date & Time</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <tr><td colspan="7" class="empty">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ===== REPORTS ===== -->
+            <section id="reports-view" class="view">
+                <div class="filters">
+                    <select id="report-period">
+                        <option value="today">Today</option>
+                        <option value="week">Last 7 Days</option>
+                        <option value="month">This Month</option>
+                    </select>
+                    <button class="btn btn-primary" onclick="loadReport()">Generate Report</button>
+                </div>
+                <div class="stats-grid" id="report-summary"></div>
+                <div class="card" style="margin-top:16px">
+                    <div class="card-header"><h3>Top Selling Medicines</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Medicine</th><th>Qty Sold</th><th>Revenue</th><th>Profit</th></tr></thead>
+                            <tbody id="report-top-body"><tr><td colspan="4" class="empty">Select period and generate</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card" style="margin-top:16px">
+                    <div class="card-header"><h3>Payment Mode Breakdown</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Mode</th><th>Bills</th><th>Amount</th></tr></thead>
+                            <tbody id="report-modes-body"><tr><td colspan="3" class="empty">-</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== CUSTOMERS ===== -->
+            <section id="customers-view" class="view">
+                <div class="filters">
+                    <input type="text" id="customer-search" placeholder="Search customer..." style="padding:9px 14px;border:1px solid var(--border);border-radius:8px;min-width:200px">
+                    <button class="btn btn-primary" onclick="showAddCustomer()">+ Add Customer</button>
+                </div>
+                <div class="card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Name</th><th>Phone</th><th>Balance (Credit)</th><th>Actions</th></tr></thead>
+                            <tbody id="customers-body"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SETTINGS ===== -->
+            <section id="settings-view" class="view">
+                <div class="card" style="margin-bottom:16px;padding:16px 20px;border-left:4px solid var(--primary)">
+                    <h3 style="margin:0 0 4px 0">Admin Settings Panel</h3>
+                    <p style="margin:0;color:var(--text-muted);font-size:13px">Change password, shop settings, users, backup & audit log</p>
+                </div>
+                <div class="card form-card">
+                    <div class="card-header"><h3>🔐 Change Password</h3></div>
+                    <form id="password-form" style="padding:24px">
+                        <div class="form-group" style="margin-bottom:16px">
+                            <label>Current Password</label>
+                            <input type="password" id="current-password" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:16px">
+                            <label>New Password (min 6 chars)</label>
+                            <input type="password" id="new-password" required minlength="6">
+                        </div>
+                        <div class="form-group" style="margin-bottom:16px">
+                            <label>Confirm New Password</label>
+                            <input type="password" id="confirm-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Password</button>
+                    </form>
+                </div>
+                <div class="card form-card" style="margin-top:20px">
+                    <div class="card-header"><h3>Shop Settings</h3></div>
+                    <div id="settings-extra" style="padding:20px">Loading...</div>
+                </div>
+                <div class="card form-card" style="margin-top:20px">
+                    <div class="card-header"><h3>Users</h3></div>
+                    <div id="users-list" style="padding:20px">Admin only</div>
+                </div>
+                <div class="card" style="margin-top:20px">
+                    <div class="card-header"><h3>Audit Log (Recent Activity)</h3></div>
+                    <div class="table-wrapper" style="max-height:400px;overflow-y:auto">
+                        <table>
+                            <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Type</th></tr></thead>
+                            <tbody id="audit-body"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card" style="margin-top:20px;padding:20px">
+                    <h3 style="margin-bottom:8px">Public Catalog</h3>
+                    <p style="color:var(--text-muted);font-size:14px;margin-bottom:12px">Share this link with customers to browse available medicines:</p>
+                    <code style="background:#f1f5f9;padding:8px 12px;border-radius:6px">http://127.0.0.1:5000/catalog</code>
+                </div>
+            </section>
+
+
+            <!-- ===== QUICK SALE ===== -->
+            <section id="quicksale-view" class="view">
+                <div class="card" style="max-width:600px;margin:0 auto">
+                    <div class="card-header"><h3>⚡ Quick Sale</h3></div>
+                    <div style="padding:20px">
+                        <div class="form-group" style="margin-bottom:12px">
+                            <label>Scan / Search Medicine</label>
+                            <input type="text" id="qs-search" placeholder="Scan barcode or type name..." style="width:100%;padding:12px;font-size:16px;border:2px solid var(--primary);border-radius:8px">
+                            <div id="qs-results" class="search-results"></div>
+                        </div>
+                        <div id="qs-cart" style="min-height:120px;margin:16px 0"></div>
+                        <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+                            <select id="qs-payment" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border)">
+                                <option value="Cash">Cash</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Card">Card</option>
+                            </select>
+                            <input type="number" id="qs-discount" placeholder="Discount ₹" min="0" step="0.01" value="0" style="width:120px;padding:10px;border-radius:8px;border:1px solid var(--border)">
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                            <strong style="font-size:24px;color:var(--primary)" id="qs-total">₹0.00</strong>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-secondary" onclick="holdCurrentBill('qs')">Hold</button>
+                                <button class="btn btn-primary btn-lg" id="qs-pay-btn" onclick="completeQuickSale()" disabled>Pay & Print</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== PURCHASE ===== -->
+            <section id="purchase-view" class="view">
+                <div class="filters">
+                    <input type="text" id="purchase-supplier" placeholder="Supplier name" style="padding:9px 14px;border:1px solid var(--border);border-radius:8px">
+                    <button class="btn btn-primary" onclick="submitPurchase()">Save Purchase</button>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Purchase Items</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="addPurchaseRow()">+ Add Row</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Medicine</th><th>Batch</th><th>Qty</th><th>Rate</th><th>MRP</th><th>Total</th><th></th></tr></thead>
+                            <tbody id="purchase-rows"></tbody>
+                        </table>
+                    </div>
+                    <div style="padding:16px;text-align:right"><strong>Total: ₹<span id="purchase-total">0.00</span></strong></div>
+                </div>
+                <div class="card" style="margin-top:16px">
+                    <div class="card-header"><h3>Recent Purchases</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>No</th><th>Supplier</th><th>Items</th><th>Amount</th><th>Date</th></tr></thead>
+                            <tbody id="purchase-history-body"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== RETURNS ===== -->
+            <section id="returns-view" class="view">
+                <div class="filters">
+                    <input type="text" id="return-bill-search" placeholder="Enter Bill No..." style="padding:9px 14px;border:1px solid var(--border);border-radius:8px;min-width:200px">
+                    <button class="btn btn-primary" onclick="loadBillForReturn()">Load Bill</button>
+                </div>
+                <div class="card" id="return-bill-card" style="display:none">
+                    <div class="card-header"><h3 id="return-bill-title">Bill</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Medicine</th><th>Batch</th><th>Sold Qty</th><th>Return Qty</th><th>Price</th></tr></thead>
+                            <tbody id="return-items-body"></tbody>
+                        </table>
+                    </div>
+                    <div style="padding:16px;display:flex;gap:12px;align-items:center">
+                        <input type="text" id="return-reason" placeholder="Reason" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border)">
+                        <button class="btn btn-primary" onclick="submitReturn()">Process Return</button>
+                    </div>
+                </div>
+                <div class="card" style="margin-top:16px">
+                    <div class="card-header"><h3>Return History</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Return No</th><th>Bill</th><th>Customer</th><th>Amount</th><th>Date</th></tr></thead>
+                            <tbody id="returns-history-body"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== NEAR EXPIRY ===== -->
+            <section id="expiry-view" class="view">
+                <div class="filters">
+                    <select id="expiry-filter">
+                        <option value="near">All Near Expiry (90 days)</option>
+                        <option value="expired">Expired</option>
+                        <option value="expiring_soon">≤ 30 days</option>
+                        <option value="expiring_90">31–90 days</option>
+                    </select>
+                    <button class="btn btn-secondary" onclick="loadExpiryList()">Refresh</button>
+                </div>
+                <div class="card">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Name</th><th>Batch</th><th>Qty</th><th>Expiry</th><th>Days Left</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="expiry-body"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== EXPENSES ===== -->
+            <section id="expenses-view" class="view">
+                <div class="card form-card" style="margin-bottom:16px">
+                    <div class="card-header"><h3>Add Expense</h3></div>
+                    <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+                        <div class="form-group"><label>Title</label><input type="text" id="exp-title" placeholder="e.g. Electricity"></div>
+                        <div class="form-group"><label>Amount ₹</label><input type="number" id="exp-amount" min="0" step="0.01"></div>
+                        <div class="form-group"><label>Category</label>
+                            <select id="exp-category"><option>General</option><option>Rent</option><option>Salary</option><option>Utilities</option><option>Transport</option></select>
+                        </div>
+                        <button class="btn btn-primary" onclick="addExpense()">Add</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>Expense List</h3></div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead><tr><th>Date</th><th>Title</th><th>Category</th><th>Amount</th></tr></thead>
+                            <tbody id="expenses-body"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== ADD / EDIT MEDICINE ===== -->
+            <section id="add-view" class="view">
+                <div class="card form-card">
+                    <div class="card-header">
+                        <h3 id="form-title">Add New Medicine</h3>
+                    </div>
+                    <form id="medicine-form">
+                        <input type="hidden" id="med-id">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="batch_number">Batch Number *</label>
+                                <input type="text" id="batch_number" required placeholder="e.g. BT2024-001">
+                            </div>
+                            <div class="form-group">
+                                <label for="barcode">Barcode / QR</label>
+                                <input type="text" id="barcode" placeholder="Scan or type barcode">
+                            </div>
+                            <div class="form-group">
+                                <label for="name">Medicine Name *</label>
+                                <input type="text" id="name" required placeholder="e.g. Paracetamol 500mg">
+                            </div>
+                            <div class="form-group">
+                                <label for="composition">Composition / Salt</label>
+                                <input type="text" id="composition" placeholder="e.g. Paracetamol">
+                            </div>
+                            <div class="form-group">
+                                <label for="location">Location / Shop</label>
+                                <select id="location"><option value="Main">Main</option><option value="Godown">Godown</option><option value="Shop2">Shop 2</option></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="company_name">Company Name *</label>
+                                <input type="text" id="company_name" required placeholder="e.g. Cipla">
+                            </div>
+                            <div class="form-group">
+                                <label for="medicine_type">Medicine Type *</label>
+                                <select id="medicine_type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="Tablet">Tablet</option>
+                                    <option value="Capsule">Capsule</option>
+                                    <option value="Syrup">Syrup</option>
+                                    <option value="Drops">Drops</option>
+                                    <option value="Ointment">Ointment</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="mfg_date">Manufacturing Date *</label>
+                                <input type="date" id="mfg_date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="expiry_date">Expiry Date *</label>
+                                <input type="date" id="expiry_date" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="rate">Rate (Purchase Price) ₹ *</label>
+                                <input type="number" id="rate" step="0.01" min="0" required placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="mrp">MRP ₹ *</label>
+                                <input type="number" id="mrp" step="0.01" min="0" required placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="quantity">Quantity in Stock *</label>
+                                <input type="number" id="quantity" min="0" required placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="units_per_strip">Units per Strip</label>
+                                <input type="number" id="units_per_strip" min="1" value="10" placeholder="10">
+                            </div>
+                            <div class="form-group">
+                                <label for="sell_unit">Default Sell Unit</label>
+                                <select id="sell_unit">
+                                    <option value="unit">Unit / Tablet</option>
+                                    <option value="strip">Strip</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="gst_rate">GST Rate %</label>
+                                <input type="number" id="gst_rate" min="0" step="0.01" value="12" placeholder="12">
+                            </div>
+                            <div class="form-group">
+                                <label for="hsn_code">HSN Code</label>
+                                <input type="text" id="hsn_code" value="3004" placeholder="3004">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="resetForm()">Cancel</button>
+                            <button type="submit" class="btn btn-primary" id="submit-btn">Save Medicine</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Please wait...</p>
+    </div>
+
+    <!-- Shortcuts modal -->
+    <div id="shortcuts-modal" class="modal">
+        <div class="modal-content" style="max-width:480px">
+            <div class="bill-header"><h3>Keyboard Shortcuts</h3>
+                <button class="btn-icon" onclick="document.getElementById('shortcuts-modal').classList.remove('show')">✕</button>
+            </div>
+            <table style="width:100%;font-size:14px">
+                <tr><td><kbd>F1</kbd></td><td>Quick Sale</td></tr>
+                <tr><td><kbd>F2</kbd></td><td>Sales / Billing</td></tr>
+                <tr><td><kbd>F3</kbd></td><td>Inventory</td></tr>
+                <tr><td><kbd>F4</kbd></td><td>Dashboard</td></tr>
+                <tr><td><kbd>F5</kbd></td><td>Reports</td></tr>
+                <tr><td><kbd>F6</kbd></td><td>Purchase</td></tr>
+                <tr><td><kbd>F7</kbd></td><td>Returns</td></tr>
+                <tr><td><kbd>F8</kbd></td><td>Near Expiry</td></tr>
+                <tr><td><kbd>F9</kbd></td><td>Add Medicine</td></tr>
+                <tr><td><kbd>F10</kbd></td><td>Hold current bill</td></tr>
+                <tr><td><kbd>Ctrl+K</kbd></td><td>Global search</td></tr>
+                <tr><td><kbd>Enter</kbd></td><td>Add scanned item (in sale search)</td></tr>
+            </table>
+            <p style="margin-top:12px;font-size:12px;color:var(--text-muted)">Tip: Print this list and keep near the counter.</p>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Delete Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>Confirm Delete</h3>
+            <p id="modal-text">Are you sure you want to delete this medicine?</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-delete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bill Detail Modal -->
+    <div id="bill-modal" class="modal">
+        <div class="modal-content bill-modal-content">
+            <div class="bill-header no-print">
+                <h3>Bill Details</h3>
+                <div class="bill-header-actions">
+                    <button class="btn btn-primary btn-sm" onclick="printBill()">🖨️ Print</button>
+                    <button class="btn btn-secondary btn-sm" onclick="if(window._lastSale)shareBillWhatsApp(window._lastSale)">📱 WhatsApp</button>
+                    <button class="btn-icon" onclick="closeBillModal()">✕</button>
+                </div>
+            </div>
+            <div id="bill-detail-body"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

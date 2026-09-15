@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medicine Catalog - MediStock</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:Inter,sans-serif;background:#f1f5f9;color:#0f172a}
+        .header{background:linear-gradient(135deg,#1E1B4B,#4F46E5);color:#fff;padding:24px;text-align:center}
+        .header h1{font-size:24px;margin-bottom:4px}
+        .header p{opacity:.8;font-size:14px}
+        .container{max-width:900px;margin:0 auto;padding:20px}
+        .search{margin-bottom:20px}
+        .search input{width:100%;padding:12px 16px;border:1px solid #e2e8f0;border-radius:10px;font-size:15px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+        .card{background:#fff;border-radius:12px;padding:16px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+        .card h3{font-size:15px;margin-bottom:6px}
+        .card .meta{font-size:12px;color:#64748b;margin-bottom:8px}
+        .card .price{font-size:18px;font-weight:700;color:#4F46E5}
+        .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:#E0E7FF;color:#312E81}
+        .empty{text-align:center;padding:40px;color:#64748b}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💊 MediStock Medical Shop</h1>
+        <p>Available Medicines Catalog</p>
+    </div>
+    <div class="container">
+        <div class="search">
+            <input type="text" id="search" placeholder="Search medicines...">
+        </div>
+        <div class="grid" id="grid"><div class="empty">Loading...</div></div>
+    </div>
+    <script>
+        async function load(q='') {
+            const res = await fetch('/api/catalog?search=' + encodeURIComponent(q));
+            const data = await res.json();
+            const grid = document.getElementById('grid');
+            if (!data.length) { grid.innerHTML = '<div class="empty">No medicines found</div>'; return; }
+            grid.innerHTML = data.map(m => `
+                <div class="card">
+                    <h3>${m.name}</h3>
+                    <div class="meta">${m.company_name} · ${m.medicine_type}</div>
+                    <div class="price">₹${Number(m.mrp).toFixed(2)}</div>
+                    <span class="badge">In Stock</span>
+                </div>
+            `).join('');
+        }
+        document.getElementById('search').addEventListener('input', e => {
+            clearTimeout(window._t);
+            window._t = setTimeout(() => load(e.target.value), 300);
+        });
+        load();
+    </script>
+</body>
+</html>
